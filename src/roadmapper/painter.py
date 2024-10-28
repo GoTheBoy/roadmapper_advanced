@@ -248,6 +248,9 @@ class Painter:
 
     def get_text_dimension(self, text: str, font: str, font_size: int) -> tuple:
         raise NotImplementedError
+    
+    def get_text_layout_info(self, text: str, text_font: str, text_font_size: int, box_width: int) -> tuple:
+        raise NotImplementedError
 
     def set_line_style(self, style: str = "solid") -> None:
         """Set line style
@@ -808,6 +811,36 @@ class PNGPainter(Painter):
         font_height = bottom
 
         return font_width, font_height
+    
+    def get_text_layout_info(self, text: str, text_font: str, text_font_size: int, box_width: int) -> tuple:
+        font = ImageFont.truetype(self.get_font_path(text_font), size=text_font_size)
+
+        multi_lines = []
+        wrap_lines = []
+
+        # ** Make '\n' work
+        multi_lines = text.splitlines()
+
+        left, _, right, _ = font.getbbox("a")
+        single_char_width = right - left
+
+        # ** wrap text
+        for line in multi_lines:
+            wrap_lines.extend(textwrap.wrap(line, int(box_width / single_char_width)))
+
+        pad = 4
+        line_count = len(wrap_lines)
+
+        for i, line in enumerate(wrap_lines):
+            _, font_height = self.get_text_dimension(
+                line, text_font, text_font_size
+            )
+
+            total_line_height = (font_height * line_count) + (pad * (line_count - 1))
+
+            single_line_height = font_height
+
+        return total_line_height, single_line_height, line_count
 
     def set_background_colour(self) -> None:
         """Set surface background colour"""
@@ -1215,6 +1248,36 @@ class SVGPainter(Painter):
         font_height = bottom
 
         return font_width, font_height
+    
+    def get_text_layout_info(self, text: str, text_font: str, text_font_size: int, box_width: int) -> tuple:
+        font = ImageFont.truetype(self.get_font_path(text_font), size=text_font_size)
+
+        multi_lines = []
+        wrap_lines = []
+
+        # ** Make '\n' work
+        multi_lines = text.splitlines()
+
+        left, _, right, _ = font.getbbox("a")
+        single_char_width = right - left
+
+        # ** wrap text
+        for line in multi_lines:
+            wrap_lines.extend(textwrap.wrap(line, int(box_width / single_char_width)))
+
+        pad = 4
+        line_count = len(wrap_lines)
+
+        for i, line in enumerate(wrap_lines):
+            font_width, font_height = self.get_text_dimension(
+                line, text_font, text_font_size
+            )
+
+            total_line_height = (font_height * line_count) + (pad * (line_count - 1))
+
+            single_line_height = font_height
+
+        return total_line_height, single_line_height, line_count
 
     def set_background_colour(self) -> None:
         """Set surface background colour"""

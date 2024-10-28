@@ -404,7 +404,7 @@ class Task:
         self.box_x = 0
         row_match = 0
         bar_start_x_pos = 0
-
+        box_width = 0
         for timeline_item in timeline.timeline_items:
             ### Get the start and end period of the timeline item
             (
@@ -506,6 +506,12 @@ class Task:
 
                 self.box_height = 20
 
+                box_width += self.box_width + 2
+                total_line_height, single_line_height, line_count = painter.get_text_layout_info(
+                    self.text, self.font, self.font_size, box_width
+                )
+                self.box_height = total_line_height + 10
+
                 box_coordinates = [
                     int(self.box_x),
                     int(self.box_y),
@@ -530,6 +536,32 @@ class Task:
             )
             self.text_x = text_x_pos
             self.text_y = text_y_pos
+
+    def get_task_master_height(self, painter: Painter) -> int:
+        """Get the maximum height of this task and all its subtasks
+
+        Args:
+            painter (Painter): Pillow wrapper class instance
+
+        Returns:
+            int: Maximum height of task and subtasks
+        """
+
+        max_height = self.box_height
+
+        # Check parallel tasks
+        for task in self.tasks:
+            task_height = task.get_task_master_height(painter)
+            if task_height > max_height:
+                max_height = task_height
+
+        # Check milestones
+        for milestone in self.milestones:
+            milestone_height = milestone.get_task_master_height(painter)
+            if milestone_height > max_height:
+                max_height = milestone_height
+
+        return max_height
 
     def draw(self, painter: Painter) -> None:
         """Draw the task
@@ -560,6 +592,10 @@ class Task:
             width,
             height,
         )
+
+        master_height = self.get_task_master_height(painter)
+        if (box_height < master_height):
+            box_height = master_height # ** set box height to master height, ensure all parallel tasks are the same height
 
         if box_x != 0 and box_y != 0 and box_width > 0 and box_height != 0:
             painter.draw_box(box_x, box_y, box_width, box_height, self.fill_colour)
