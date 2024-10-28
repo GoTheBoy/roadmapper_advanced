@@ -169,18 +169,19 @@ class Group:
             painter (Painter): Pillow wrapper class instance
         """
         # Step 1: draw group
-        painter.draw_box_with_text(
-            self.box_x,
-            self.box_y,
-            self.box_width,
-            self.box_height,
-            self.fill_colour,
-            self.text,
-            self.text_alignment,
-            self.font,
-            self.font_size,
-            self.font_colour,
-        )
+        if self.box_width > 0:
+            painter.draw_box_with_text(
+                self.box_x,
+                self.box_y,
+                self.box_width,
+                self.box_height,
+                self.fill_colour,
+                self.text,
+                self.text_alignment,
+                self.font,
+                self.font_size,
+                self.font_colour,
+            )
 
         # Step 2: draw tasks
         for tasks in self.tasks:

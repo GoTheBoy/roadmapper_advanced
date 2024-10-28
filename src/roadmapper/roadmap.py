@@ -45,6 +45,7 @@ class Roadmap:
     colour_theme: str = field(default="DEFAULT", init=True)
     show_marker: bool = field(default=True, init=True)
     painter_type: str = field(default="png", init=True)
+    group_box_width_percentage: float = field(default=0.2, init=True)
 
     _title: Title = field(default=None, init=False)
     _subtitle: SubTitle = field(default=None, init=False)
@@ -59,7 +60,7 @@ class Roadmap:
         """This method is called after __init__() is called"""
         self.start_time = time.time()
         factory = PainterFactory()
-        self._painter = factory.get_painter(self.painter_type, self.width, self.height)
+        self._painter = factory.get_painter(self.painter_type, self.width, self.height, self.group_box_width_percentage)
         self._set_colour_theme(self.colour_theme)
         self._groups = []
         if self.show_marker is True:

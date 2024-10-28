@@ -106,7 +106,7 @@ class Painter:
     font: str
     font_size: int
 
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, group_box_width_percentage: float):
         """__init__ method
 
         Args:
@@ -116,6 +116,8 @@ class Painter:
         self.width = width
         self.height = height
         self.next_y_pos = 0
+        self.group_box_width_percentage = group_box_width_percentage
+        self.timeline_width_percentage = 1 - group_box_width_percentage
 
     def set_colour_theme(self, colour_theme: str) -> None:
         """Set colour palette
@@ -418,14 +420,14 @@ class PNGPainter(Painter):
     """A wrapper class for Pillow library"""
 
     # initialise code
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, group_box_width_percentage: float):
         """__init__ method
 
         Args:
             width (int): Width of the surface
             height (int): Height of the surface
         """
-        super().__init__(width, height)
+        super().__init__(width, height, group_box_width_percentage)
 
         self.__surface = Image.new("RGBA", (width, height), (0, 0, 0, 0))
 
@@ -851,14 +853,14 @@ class PNGPainter(Painter):
 
 
 class SVGPainter(Painter):
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, group_box_width_percentage: float):
         """__init__ method
 
         Args:
             width (int): Width of the surface
             height (int): Height of the surface
         """
-        super().__init__(width, height)
+        super().__init__(width, height, group_box_width_percentage)
         self.__cr = None
         self.elements = []
 
@@ -1253,13 +1255,13 @@ class PainterFactory:
     def __init__(self):
         self._painters = {}
 
-    def get_painter(self, painter_name, width, height):
+    def get_painter(self, painter_name, width, height, group_box_width_percentage):
         if painter_name not in self._painters:
             self._painters[painter_name] = self._create_painter(
-                painter_name, width, height
+                painter_name, width, height, group_box_width_percentage
             )
         return self._painters[painter_name]
 
-    def _create_painter(self, painter_name, width, height):
+    def _create_painter(self, painter_name, width, height, group_box_width_percentage):
         # Return a painter object based on the painter_name without using if statement
-        return globals()[f"{painter_name.upper()}Painter"](width, height)
+        return globals()[f"{painter_name.upper()}Painter"](width, height, group_box_width_percentage)
