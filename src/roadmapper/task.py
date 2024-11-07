@@ -34,6 +34,7 @@ class Task:
 
     text: str = field(init=True, default=None)
     start: datetime = field(init=True, default=None)
+    mid: datetime = field(init=True, default=None)
     end: datetime = field(init=True, default=None)
     font: str = field(init=True, default=None)
     font_size: int = field(init=True, default=0)
@@ -49,8 +50,10 @@ class Task:
     boxes: list = field(init=False, default_factory=list)
     milestones: list = field(init=False, default_factory=list)
     box_x: int = field(init=False, default=0)
+    box_mid_x: int = field(init=False, default=0)
     box_y: int = field(init=False, default=0)
     box_width: int = field(init=False, default=0)
+    box_mid_width: int = field(init=False, default=0)
     box_height: int = field(init=False, default=0)
     text_x: int = field(init=False, default=0)
     text_y: int = field(init=False, default=0)
@@ -59,6 +62,7 @@ class Task:
         self,
         text: str,
         start: datetime,
+        mid: datetime,
         end: datetime,
         font: str = "",
         font_size: int = 0,
@@ -90,6 +94,7 @@ class Task:
         task = Task(
             text=text,
             start=start,
+            mid=mid,
             end=end,
             font=font,
             font_size=font_size,
@@ -182,9 +187,13 @@ class Task:
         for_parallel_tasks_y = self.box_y
 
         task_start_period = datetime.strptime(self.start, "%Y-%m-%d")
+        if self.mid is None:
+            task_mid_period = None
+        else:
+            task_mid_period = datetime.strptime(self.mid, "%Y-%m-%d")
         task_end_period = datetime.strptime(self.end, "%Y-%m-%d")
 
-        self.set_task_position(painter, timeline, task_start_period, task_end_period)
+        self.set_task_position(painter, timeline, task_start_period, task_mid_period, task_end_period)
 
         ### Set parallel tasks position
         for task in self.tasks:
@@ -391,6 +400,7 @@ class Task:
         painter: Painter,
         timeline: Timeline,
         task_start_period: datetime,
+        task_mid_period: datetime,
         task_end_period: datetime,
     ) -> None:
         """Set the draw position of this task
@@ -402,6 +412,7 @@ class Task:
             task_end_period (datetime): Task end date
         """
         self.box_x = 0
+        self.box_mid_x = 0
         row_match = 0
         bar_start_x_pos = 0
         box_width = 0
@@ -435,6 +446,16 @@ class Task:
                 ) = timeline_item.get_timeline_pos_percentage(
                     timeline.mode, task_end_period
                 )
+                
+                if task_mid_period is not None:
+                    (
+                        _,
+                        start_mid_pos_percentage,
+                    ) = timeline_item.get_timeline_pos_percentage(
+                        timeline.mode,
+                        task_mid_period,
+                    )
+
                 row_match += 1
 
                 ## Check condition 1
@@ -454,6 +475,23 @@ class Task:
                         timeline_item.box_width * start_pos_percentage
                     )
                     bar_start_x_pos = self.box_x
+                
+                #Find mid_x
+                if ( task_mid_period is not None and
+                    self.is_task_begins_here_ends_here(
+                        timeline_start_period,
+                        timeline_end_period,
+                        task_mid_period,
+                        task_end_period,
+                    )
+                    is True
+                ):
+                    self.box_mid_x = timeline_item.box_x + (
+                        timeline_item.box_width * start_mid_pos_percentage
+                    )
+                    self.box_mid_width = (timeline_item.box_width * end_pos_percentage) - (
+                        timeline_item.box_width * start_mid_pos_percentage
+                    )
 
                 ## Check condition 2
                 if (
@@ -469,6 +507,19 @@ class Task:
                     if bar_start_x_pos == 0:
                         bar_start_x_pos = self.box_x
                     self.box_width = timeline_item.box_width * end_pos_percentage
+
+                #Find mid_x
+                if ( task_mid_period is not None and
+                    self.is_task_begins_past_ends_here(
+                        timeline_start_period,
+                        timeline_end_period,
+                        task_mid_period,
+                        task_end_period,
+                    )
+                    is True
+                ):
+                    self.box_mid_x = timeline_item.box_x
+                    self.box_mid_width = timeline_item.box_width * end_pos_percentage
 
                 ## Check condition 3
                 if (
@@ -487,6 +538,23 @@ class Task:
                         timeline_item.box_width * start_pos_percentage
                     )
                     bar_start_x_pos = self.box_x
+                
+                #Find mid_x
+                if ( task_mid_period is not None and
+                    self.is_task_begins_here_ends_future(
+                        timeline_start_period,
+                        timeline_end_period,
+                        task_mid_period,
+                        task_end_period,
+                    )
+                    is True
+                ):
+                    self.box_mid_x = timeline_item.box_x + (
+                        timeline_item.box_width * start_mid_pos_percentage
+                    )
+                    self.box_mid_width = timeline_item.box_width - (
+                        timeline_item.box_width * start_mid_pos_percentage
+                    )
 
                 ## Check condition 4
                 if (
@@ -504,6 +572,19 @@ class Task:
                     if bar_start_x_pos == 0:
                         bar_start_x_pos = self.box_x
 
+                #Find mid_x
+                if ( task_mid_period is not None and
+                    self.is_task_begins_past_ends_future(
+                        timeline_start_period,
+                        timeline_end_period,
+                        task_mid_period,
+                        task_end_period,
+                    )
+                    is True
+                ):
+                    self.box_mid_x = timeline_item.box_x
+                    self.box_mid_width = timeline_item.box_width
+
                 self.box_height = 20
 
                 box_width += self.box_width + 2
@@ -514,8 +595,10 @@ class Task:
 
                 box_coordinates = [
                     int(self.box_x),
+                    int(self.box_mid_x),
                     int(self.box_y),
                     int(self.box_width),
+                    int(self.box_mid_width),
                     int(self.box_height),
                 ]
                 self.boxes.append(box_coordinates)
@@ -571,17 +654,25 @@ class Task:
         """
         box_x = 0
         box_y = 0
+        box_mid_x = 0
         width = 0
+        box_mid_width = 0
         height = 0
 
         for i, box in enumerate(self.boxes):
             if i == 0:
                 box_x = box[0]
-                box_y = box[1]
+                box_mid_x = box[1]
+                box_y = box[2]
+
+            if box_mid_x == 0:
+                box_mid_x = box[1]
+
             # ** Fix for [69] - factored in gap spaces width
-            width += int(box[2]) + 2
+            width += int(box[3]) + 2
+            box_mid_width += int(box[4]) + 2
             # **
-            height = box[3]
+            height = box[5]
 
         # ** Fix for [69] - ignore the last gap space
         if width >= 2:
@@ -599,6 +690,9 @@ class Task:
 
         if box_x != 0 and box_y != 0 and box_width > 0 and box_height != 0:
             painter.draw_box(box_x, box_y, box_width, box_height, self.fill_colour)
+
+            if box_mid_x != 0 and box_mid_width > 0:
+                painter.draw_texture(box_mid_x, box_y, box_mid_width, box_height)
 
             # ** Fix for v1.4.1 - Draw milestone first before task text
             for task in self.tasks:

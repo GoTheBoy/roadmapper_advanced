@@ -57,6 +57,7 @@ class Group:
         self,
         text: str,
         start: datetime,
+        mid: datetime,
         end: datetime,
         font: str = "",
         font_size: int = 0,
@@ -90,6 +91,7 @@ class Group:
         task = Task(
             text=text,
             start=start,
+            mid=mid,
             end=end,
             font=font,
             font_size=font_size,

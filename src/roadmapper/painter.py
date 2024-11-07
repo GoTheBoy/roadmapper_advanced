@@ -273,6 +273,9 @@ class Painter:
             box_fill_colour (str: HTML colour name or hex code. Eg. #FFFFFF or LightGreen)
         """
         return [(x, y), (x + width, y + height)]
+    
+    def draw_texture(self,box_mid_x, box_y, box_mid_width, box_height) -> None:
+        raise NotImplementedError
 
     def draw_rounded_box(
         self, x: int, y: int, width: int, height: int, box_fill_colour: str
@@ -451,6 +454,44 @@ class PNGPainter(Painter):
 
         shape = super().draw_box(x, y, width, height, box_fill_colour)
         self.__cr.rectangle(shape, fill=box_fill_colour)
+
+    def draw_texture(self, box_mid_x, box_y, box_mid_width, box_height) -> None:
+        """Draw diagonal lines texture
+
+        Args:
+            box_mid_x (int): X coordinate of the middle box
+            box_y (int): Y coordinate
+            box_mid_width (int): Width of the middle box
+            box_height (int): Height of the box
+        """
+        # Calculate diagonal line spacing
+        spacing = 10
+        line_width = 2
+        line_color = "white"
+
+        # Calculate start and end points for diagonal lines
+        for i in range(-box_height, box_mid_width + box_height, spacing):
+            start_x = box_mid_x + i
+            start_y = box_y
+            end_x = start_x - box_height 
+            end_y = box_y + box_height
+
+            # Only draw line if it intersects the box
+            if end_x < box_mid_x + box_mid_width and start_x >= box_mid_x:
+                # Clip line to box boundaries
+                if start_x > box_mid_x + box_mid_width:
+                    # Adjust start point
+                    excess = start_x - (box_mid_x + box_mid_width)
+                    start_x = box_mid_x + box_mid_width
+                    start_y += excess
+
+                if end_x < box_mid_x:
+                    # Adjust end point
+                    excess = box_mid_x - end_x
+                    end_x = box_mid_x
+                    end_y -= excess
+
+                self.__cr.line([(start_x, start_y), (end_x, end_y)], fill=line_color, width=line_width)
 
     def draw_rounded_box(
         self, x: int, y: int, width: int, height: int, box_fill_colour: str
@@ -906,6 +947,9 @@ class SVGPainter(Painter):
         rectangle = dw.Rectangle(x, y, width, height, fill=box_fill_colour)
 
         self.elements.append(rectangle)
+
+    def draw_texture(self, box_mid_x, box_y, box_mid_width, box_height) -> None:
+        raise NotImplementedError
 
     def draw_rounded_box(
         self, x: int, y: int, width: int, height: int, box_fill_colour: str
